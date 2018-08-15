@@ -11,6 +11,8 @@ import graph
 
 import errors
 
+import ptn
+
 gameS = enum.Enum( 'gameS', 'WHITE_ROAD BLACK_ROAD WHITE_TILE BLACK_TILE DRAW WHITE BLACK ABORT NONE')
 
 class Game:
@@ -24,6 +26,7 @@ class Game:
     flat = ['F', 'f']
     wall = ['S', 's']
     capstone = ['C', 'c']
+    parser = 0
     gameState = gameS.NONE
 
     def __init__( self, boardSize, whiteInput, blackInput ):
@@ -35,6 +38,7 @@ class Game:
         self.white = players.commandLinePlayer.CommandLine( flats, capstones, whiteInput, 0, [ self.flat[0], self.wall[0], self.capstone[0] ] )
         self.black = players.commandLinePlayer.CommandLine( flats, capstones, blackInput, 1, [ self.flat[1], self.wall[1], self.capstone[1] ] )
         self.gameState = gameS.BLACK
+        self.parser = ptn.ptnParser( self.board )
 
         self.firstTurn()
         while self.gameState == gameS.BLACK:
@@ -45,12 +49,7 @@ class Game:
         if boardSize < 3 or boardSize > 8:
             print('Not a legal board size')
             return []
-        tempBoard = []
-        for i in range( boardSize ):
-            row = []
-            for i in range( boardSize ):
-                row += ['']
-            tempBoard += [row]
+        tempBoard = [['' for x in range( boardSize )] for y in range( boardSize )]
         return tempBoard
 
     def getPieces( self, boardSize ):
@@ -189,6 +188,7 @@ class Game:
         self.gameState = gameS.BLACK
         self.ply( self.black )
         self.updateState()
+        self.parser.seqToPtn( [] )
 
     def ply( self, player ):
         moved = False

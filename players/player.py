@@ -1,8 +1,6 @@
 import copy
 import errors
-
-# A shell class, intended to be subclassed from in order to have multiple player
-# input and output styles, i.e. visual client, text client, bot, etc.
+import socket
 
 class Player:
     flatsRemaining = 0
