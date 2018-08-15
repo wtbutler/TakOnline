@@ -18,7 +18,6 @@ gameS = enum.Enum( 'gameS', 'WHITE_ROAD BLACK_ROAD WHITE_TILE BLACK_TILE DRAW WH
 class Game:
     boardSize = 0
     board = []
-    tileNames = []
     turnCount = 0
     moveHistory = []
     white = 0
@@ -32,7 +31,6 @@ class Game:
     def __init__( self, boardSize, whiteInput, blackInput ):
         self.boardSize = boardSize
         self.board = self.getBoard( boardSize )
-        self.tileNames = self.getTileList( boardSize )
         if self.board == []: return
         flats, capstones = self.getPieces( boardSize )
         self.white = players.commandLinePlayer.CommandLine( flats, capstones, whiteInput, 0, [ self.flat[0], self.wall[0], self.capstone[0] ] )
@@ -56,17 +54,6 @@ class Game:
         flats = [ 10, 15, 21, 30, 40, 50 ]
         capstones = [ 0, 0, 1, 1, 1, 2 ]
         return flats[ boardSize - 3 ], capstones[ boardSize - 3 ]
-
-    def getTileList( self, boardSize ):
-        letters = ['1', '2', '3', '4', '5', '6', '7', '8']
-        numbers = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-        tempTileList = []
-        for row in range(boardSize):
-            tempRow = []
-            for col in range(boardSize):
-                tempRow += [numbers[col]+letters[boardSize-1-row]]
-            tempTileList += [tempRow]
-        return tempTileList
 
     # Helper functions that check various states
     def updateState( self ):

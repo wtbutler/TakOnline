@@ -4,6 +4,9 @@
 class TakException(Exception):
     pass
 
+class TakPTNFormatError(TakException):
+    pass
+
 class TakInputError(TakException):
     pass
 
