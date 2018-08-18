@@ -36,7 +36,7 @@ class Game:
         self.white = players.commandLinePlayer.CommandLine( flats, capstones, whiteInput, 0, [ self.flat[0], self.wall[0], self.capstone[0] ] )
         self.black = players.commandLinePlayer.CommandLine( flats, capstones, blackInput, 1, [ self.flat[1], self.wall[1], self.capstone[1] ] )
         self.gameState = gameS.BLACK
-        self.parser = ptn.ptnParser( self.board )
+        self.parser = ptn.ptnParser( self.boardSize )
 
         self.firstTurn()
         while self.gameState == gameS.BLACK:
@@ -175,7 +175,6 @@ class Game:
         self.gameState = gameS.BLACK
         self.ply( self.black )
         self.updateState()
-        self.parser.seqToPtn( [] )
 
     def ply( self, player ):
         moved = False
@@ -187,133 +186,71 @@ class Game:
                 moved = True
             except errors.TakException as e:
                 print( e )
-        player.giveBoard( self.board )
+        # player.giveBoard( self.board )
         self.checkRoadWin()
         self.checkOutOfPieces()
         self.checkOutOfSquares()
 
     # Functions for interpreting moves and placing, and moving pieces.
     def moveMaster( self, moveText, player ):
-        # moveText sent in a formatted string, but not a list
         if moveText == 'quit':
             self.gameState = gameS.ABORT
             return
-        brokenDownText = []
-        # REPLACE WITH ACTUAL CONVERSION
-        directions = [ '<', '-', '>', '+' ]
-        type = ''
-        for row in self.tileNames:
-            for name in row:
-                if name in moveText:
-                    offset = moveText.index( name )
-                    if offset > 1 or offset < 0: raise error.TakInputError( 'Position value in an incorrect location' )
-                    if offset == 1:
-                        try:
-                            brokenDownText += [ int( moveText[0] ) ]
-                        except:
-                            brokenDownText += [ moveText[0].upper() ]
-                    brokenDownText += [name]
-                    if len(moveText) > 2 + offset: type = 'move'
-                    else: type = 'place'
-                    if type != 'place' and len( moveText ) > 2:
-                        if moveText[ 2 + offset ] in directions:
-                            brokenDownText += moveText[ 2 + offset ]
-                            for i in moveText[ 3 + offset: ]: brokenDownText += [ int( i ) ]
-        print( brokenDownText )
+        actionList = self.parser.ptnToSeq( moveText )
+        for action in actionList: print( action )
+        # Handles placement
+        if len( actionList ) == 1:
+            if self.board[ actionList[ 0 ][ 'y' ] ][ actionList[ 0 ][ 'x' ] ]:
+                raise errors.TakExcecutionError( 'You must place a new piece in an empty square!' )
+            if not( 'special' in actionList[0].keys() ):
+                player.useFlat()
+                self.pushPieces( [ actionList[ 0 ][ 'x' ], actionList[ 0 ][ 'y' ] ], player.types[ 0 ] )
+                return
+            if actionList[ 0 ][ 'special' ] == self.capstone[ 0 ]:
+                player.useCapstone()
+                self.pushPieces( [ actionList[ 0 ][ 'x' ], actionList[ 0 ][ 'y' ] ], player.types[ 2 ] )
+                return
+            if actionList[ 0 ][ 'special' ] == self.wall[ 0 ]:
+                player.useFlat()
+                self.pushPieces( [ actionList[ 0 ][ 'x' ], actionList[ 0 ][ 'y' ] ], player.types[ 1 ] )
+                return
+        else:
+            if len( self.board[ actionList[ 0 ][ 'y' ] ][ actionList[ 0 ][ 'x' ] ] ) < actionList[0][ 'count' ]:
+                raise errors.TakExcecutionError( 'You cannot pick up more pieces than are in a space' )
+            if not ( self.board[ actionList[ 0 ][ 'y' ] ][ actionList[ 0 ][ 'x' ] ][ -1 ] in player.types ):
+                raise errors.TakExcecutionError( 'You can only move stacks that you control' )
+            tempStack = self.popPieces( [ actionList[ 0 ][ 'x' ], actionList[ 0 ][ 'y' ] ], actionList[ 0 ][ 'count' ] )
+            print( tempStack )
+            for drop in actionList[1:]:
+                if drop[ 'action' ] == 'push':
+                    self.pushPieces( [ drop[ 'x' ], drop[ 'y' ] ], tempStack[ :drop[ 'count' ] ] )
+                    tempStack = tempStack[ drop[ 'count' ]: ]
+                else:
+                    raise errors.TakExcecutionError( 'You are not able to pick up pieces after your initial submove' )
 
-        if type == 'move':
-            self.moveMove( brokenDownText, player )
-            return
-        if type == 'place':
-            self.movePlace( brokenDownText, player )
-            return
-        raise errors.TakInputError( 'ERROR: could not decide what kind of move that was' )
-        print( 'ERROR: could not decide what kind of move that was' )
+    def pushPieces( self, coords, piecesToPush ):
+        # Returns nothing
+        print( coords, piecesToPush )
+        if len( self.board[ coords[ 1 ] ][ coords[ 0 ] ] ) > 0:
+            if self.board[ coords[ 1 ] ][ coords[ 0 ] ][ -1 ] in self.wall:
+                if piecesToPush in self.capstone:
+                    temp = self.flat[ self.wall.index( self.board[ coords[ 1 ] ][ coords[ 0 ] ][ -1 ] ) ]
+                    self.board[ coords[ 1 ] ][ coords[ 0 ] ] = self.board[ coords[ 1 ] ][ coords[ 0 ] ][ :-1 ] + temp + piecesToPush
+                    return
+                raise errors.TakExcecutionError( 'Cannot move a piece over a wall' )
+            if self.board[ coords[ 1 ] ][ coords[ 0 ] ][ -1 ] in self.capstone:
+                raise errors.TakExcecutionError( 'Cannot move a piece over a capstone' )
+        print( self.board[ coords[ 1 ] ][ coords[ 0 ] ], piecesToPush )
+        self.board[ coords[ 1 ] ][ coords[ 0 ] ] += piecesToPush
+        print( self.board[ coords[ 1 ] ][ coords[ 0 ] ] )
         return
 
-    def movePlace( self, moveText, player ):
-        # moveText [ <piece type>, location ]
-        piece = ''
-        moveName = ''
-        if len( moveText ) == 1:
-            piece = player.types[0]
-            moveName += ''
-        if len( moveText ) == 2:
-            if self.turnCount == 1: raise errors.TakExcecutionError( 'Must play a flat stone on first turn' )
-            if moveText[0].lower() == player.types[1].lower():
-                piece = player.types[1]
-                moveName += 'S'
-            if moveText[0].lower() == player.types[2].lower():
-                piece = player.types[2]
-                moveName += 'C'
-        coords = self.nameToLocation( moveText[-1] )
-        if self.isEmpty( coords[0], coords[1] ):
-            if piece == player.types[2]: player.useCapstone()
-            else: player.useFlat()
-            self.board[coords[1]][coords[0]] += piece
-            moveName += moveText[-1]
-            print( moveName )
-            self.moveHistory += [ moveName ]
-        else:
-            raise errors.TakExcecutionError( ' - There is already a piece there.' )
-            print( ' - There is already a piece there.' )
+    def popPieces( self, coords, numToPop ):
+        # Returns string of pieces popped
+        tempStack = self.board[ coords[ 1 ] ][ coords[ 0 ] ][ len( self.board[ coords[ 1 ] ][ coords[ 0 ] ] ) - numToPop: ]
+        self.board[ coords[ 1 ] ][ coords[ 0 ] ] = self.board[ coords[ 1 ] ][ coords[ 0 ] ][ :len( self.board[ coords[ 1 ] ][ coords[ 0 ] ] ) - numToPop ]
+        return tempStack
 
-    def moveMove( self, moveText, player ):
-        # moveText [ <pieces picked up>, location, direction, drop1, drop2, drop3...]
-        moveName = ''.join( str(x) for x in moveText )
-        print( moveName )
-        numMoving = 1
-        location = []
-        direction = ''
-        drops = []
-        if type( moveText[0] ) == int: numMoving = moveText.pop(0)
-        location = self.nameToLocation( moveText[0] )
-        direction = moveText[1]
-        drops = moveText[2:]
-        if drops == []: drops = [numMoving]
-        if self.board[location[1]][location[0]] == '':
-            raise errors.TakExcecutionError( 'Trying to move pieces from an empty square' )
-            return
-        if self.board[location[1]][location[0]][-1] not in player.types:
-            raise errors.TakExcecutionError( 'Trying to pick up a piece that is not yours' )
-            return
-        if len(self.board[location[1]][location[0]]) < numMoving:
-            raise errors.TakExcecutionError( 'Trying to pick up more pieces than are in the square' )
-            return
-        if sum(drops) != numMoving:
-            raise errors.TakExcecutionError( 'Trying to drop off a different number of pieces that you picked up' )
-            return
-        if numMoving > self.boardSize:
-            raise errors.TakExcecutionError( 'Trying to pick up more than the carry limit' )
-            return
-        isCapstone = False
-        if self.board[location[1]][location[0]][-1] == player.types[2]:
-            path = self.isMovableWithCapstone( location, direction, len(drops), drops[-1] )
-            isCapstone = True
-            print( 'Capstone path decided' )
-        else:
-            path = self.isMovable( location, direction, len(drops) )
-        if path:
-            stack = self.board[location[1]][location[0]]
-            tempStack = stack[len(stack)-numMoving:]
-            self.board[location[1]][location[0]] = stack[:len(stack)-numMoving]
-            print( path )
-            for space in path:
-                toDrop = drops.pop(0)
-                print( tempStack, toDrop )
-                if drops == [] and isCapstone:
-                    print( 'capstone coming down for final move' )
-                    if len( self.board[space[1]][space[0]] ) > 0:
-                        print( 'capstone landing on something' )
-                        if self.board[space[1]][space[0]][-1] in self.wall:
-                            print( 'capstone landing on a wall!' )
-                            temp = self.flat[ self.wall.index(self.board[space[1]][space[0]][-1]) ]
-                            self.board[space[1]][space[0]] = self.board[space[1]][space[0]][-1][:-1] + temp
-                self.board[space[1]][space[0]] += tempStack[:toDrop]
-                tempStack = tempStack[toDrop:]
-            self.moveHistory += [moveName]
-        else:
-            raise errors.TakExcecutionError( 'Not possible to move that way' )
 
     # Functions for determining if a winner exists
     def checkOutOfPieces( self ):

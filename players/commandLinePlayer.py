@@ -22,7 +22,7 @@ class CommandLine( players.player.Player ):
         verticalWrapper = [''] + letters[:self.boardSize] + ['']
         print( verticalWrapper )
         for index in range(self.boardSize):
-            print( [numbers[self.boardSize-1-index]] + self.board[index] + [numbers[self.boardSize-1-index]] )
+            print( [numbers[self.boardSize-1-index]] + self.board[::-1][index] + [numbers[self.boardSize-1-index]] )
         print( verticalWrapper )
         print()
         print( 'Flats remaining: {}, capstones remaining: {}'.format( self.flatsRemaining, self.capstonesRemaining ) )

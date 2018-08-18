@@ -65,24 +65,26 @@ class ptnParser:
                 raise errors.TakInputError( 'PTN string has differing totals of pieces to be moved and drops' )
             if int( breakdown[ 'num_moved' ] ) > self.boardSize:
                 raise errors.TakInputError( 'PTN string has a larger total of pieces picked up than board length' )
+
         coords = self.nameToLocation( breakdown[ 'location' ] )
         if breakdown[ 'num_moved' ]:
             actionList += [ {   'action': 'pop',
                                 'count': int( breakdown[ 'num_moved' ] ),
                                 'x': coords[ 0 ],
                                 'y': coords[ 1 ] } ]
-        if breakdown[ 'special_piece' ]:
-            actionList += [ {   'action': 'push',
-                                'count': 1,
-                                'x': coords[ 0 ],
-                                'y': coords[ 1 ],
-                                'special': breakdown[ 'special_piece' ].upper() } ]
 
         if not( breakdown[ 'movement' ] ):
-            actionList += [ {   'action': 'push',
-                                'count': 1,
-                                'x': coords[ 0 ],
-                                'y': coords[ 1 ] } ]
+            if breakdown[ 'special_piece' ]:
+                actionList += [ {   'action': 'push',
+                                    'count': 1,
+                                    'x': coords[ 0 ],
+                                    'y': coords[ 1 ],
+                                    'special': breakdown[ 'special_piece' ].upper() } ]
+            else:
+                actionList += [ {   'action': 'push',
+                                    'count': 1,
+                                    'x': coords[ 0 ],
+                                    'y': coords[ 1 ] } ]
         else:
             modifier = self.getModifier( breakdown[ 'direction' ] )
             for submove in range( len( breakdown[ 'drops' ] ) ):
@@ -90,7 +92,8 @@ class ptnParser:
                                     'count': int( breakdown[ 'drops' ][ submove ] ),
                                     'x': coords[ 0 ] + modifier[ 0 ] * ( submove + 1 ),
                                     'y': coords[ 1 ] + modifier[ 1 ] * ( submove + 1 ) } ]
-
+        if len( actionList ) == 0:
+            raise errors.TakInputError( 'Somehow got through the parser without the parser understanding' )
         return actionList
 
 
