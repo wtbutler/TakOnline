@@ -50,7 +50,7 @@ class Game:
         if self.gameState == gameS.ABORT: print('ERROR: ABORT')
         if self.gameState == gameS.NONE: print('ERROR: NONE')
         if self.gameState == gameS.WHITE: print('Black to move...')
-        if self.gameState == gameS.BLACK: print('White to move...')board.
+        if self.gameState == gameS.BLACK: print('White to move...')
 
     # Main functions of the game, allow changes to be made.
     def firstTurn( self ):
@@ -123,10 +123,6 @@ class Game:
                 raise errors.TakExcecutionError( 'You cannot pick up more pieces than are in a space' )
             if not ( self.board[ actionList[ 0 ][ 'y' ] ][ actionList[ 0 ][ 'x' ] ][ -1 ] in player.types ):
                 raise errors.TakExcecutionError( 'You can only move stacks that you control' )
-            tempStack = self.board[ actionList[ 0 ] ][ actionList[ 0 ][ 'y' ] ][ len( self.board[ coords[ 1 ] ][ coords[ 0 ] ] ) - numToPop: ]
-            self.isMovable( [ actionList[ 0 ][ 'x' ], actionList[ 0 ][ 'y' ] ], modifier, breakdown['drops'], tempStack )
-            tempStack = self.popPieces( [ actionList[ 0 ][ 'x' ], actionList[ 0 ][ 'y' ] ], actionList[ 0 ][ 'count' ] )
-            print( tempStack )
             for drop in actionList[1:]:
                 if drop[ 'action' ] == 'push':
                     self.pushPieces( [ drop[ 'x' ], drop[ 'y' ] ], tempStack[ :drop[ 'count' ] ] )
