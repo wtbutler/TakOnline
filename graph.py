@@ -3,7 +3,7 @@
 
 class Graph:
     arcs = []
-    
+
     def __init__( self, grid ):
          self.arcs = self.gridToArcs( grid )
 

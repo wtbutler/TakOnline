@@ -7,10 +7,16 @@ class Board:
     size = 0
     board = 0
     board = []
+    flat = []
+    wall = []
+    capstone = []
 
-    def __init__( self, size ):
+    def __init__( self, size, flat, wall, capstone ):
         self.size = size
         self.board = self.getBoard( size )
+        self.flat = flat
+        self.wall = wall
+        self.capstone = capstone
         self.matchData = re.compile(r'(?P<prefix>(?P<num_moved>[1-8])|(?P<special_piece>[CcSs]))?(?P<location>(?P<column>[a-h])(?P<row>[1-8]))(?P<movement>(?P<direction>[+-<>])(?P<drops>[1-8]{,8})(?P<wall_smash>\*)?$)?')
         # prefix
         # num_moved
@@ -149,7 +155,7 @@ class Board:
                                     'y': coords[ 1 ] + modifier[ 1 ] * ( submove + 1 ) } ]
         if len( actionList ) == 0:
             raise errors.TakInputError( 'Somehow got through the parser without the parser understanding' )
-        return actionList, breakdown, modifier
+        return actionList
 
 
     # [ {action: 'pop', count: 3, x: 0, y:0},
@@ -161,13 +167,13 @@ class Board:
         print( 'ptn board' )
         print( self.board )
 
-    def checkOutOfSquares( self ):
+    def checkOutOfSquares( self, gameState ):
         for row in self.board:
             for stack in row:
-                if stack == '': return
-        self.checkFlatWin()
+                if stack == '': return gameState
+        return self.checkFlatWin( gameState )
 
-    def checkRoadWin( self ):
+    def checkRoadWin( self, gameState ):
         # Makes separate grids for each player for the possible
         # tiles that player controls that are part of a road
         # i.e. flats and caps but not walls
@@ -196,14 +202,15 @@ class Board:
         # Gives the road to the player who won, or the active player in the case
         # of a double road.
         if roadWhite and not roadBlack:
-            self.gameState = gameS.WHITE_ROAD
+            return gameS.WHITE_ROAD
         if roadBlack and not roadWhite:
-            self.gameState = gameS.BLACK_ROAD
+            return gameS.BLACK_ROAD
         if roadWhite and roadBlack:
-            if self.gameState == gameS.WHITE: self.gameState = gameS.WHITE_ROAD
-            if self.gameState == gameS.BLACK: self.gameState = gameS.BLACK_ROAD
+            if gameState == gameS.WHITE: return gameS.WHITE_ROAD
+            if gameState == gameS.BLACK: return gameS.BLACK_ROAD
+        return gameState
 
-    def checkFlatWin( self ):
+    def checkFlatWin( self, gameState ):
         # Totals up flat pieces on top of stacks and gives
         # the win to the person with the most
         count1 = 0
@@ -213,7 +220,8 @@ class Board:
                 if len(stack) > 0:
                     if stack[-1] == self.flat[0]: count1 += 1
                     if stack[-1] == self.flat[1]: count2 += 1
-        if count1 > count2: self.gameState = gameS.WHITE_TILE
-        if count2 > count1: self.gameState = gameS.BLACK_TILE
-        if count1 == count2: self.gameState = gameS.DRAW
+        if count1 > count2: return gameS.WHITE_TILE
+        if count2 > count1: return gameS.BLACK_TILE
+        if count1 == count2: return gameS.DRAW
+        raise errors.TakBoardError( 'The board is full, but no end condition is met' )
         return

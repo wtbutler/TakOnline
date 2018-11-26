@@ -38,7 +38,14 @@ class Player:
     def useFlat( self ):
         if self.flatsRemaining == 0: raise errors.TakPlayerError( 'Out of flat pieces' )
         self.flatsRemaining -= 1
+        return self.types[0]
+
+    def useWall( self ):
+        if self.flatsRemaining == 0: raise errors.TakPlayerError( 'Out of flat pieces' )
+        self.flatsRemaining -= 1
+        return self.types[1]
 
     def useCapstone( self ):
         if self.capstonesRemaining == 0: raise errors.TakPlayerError( 'Out of capstones' )
         self.capstonesRemaining -= 1
+        return self.types[2]

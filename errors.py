@@ -15,3 +15,6 @@ class TakExcecutionError(TakException):
 
 class TakPlayerError(TakException):
     pass
+
+class TakBoardError(TakException):
+    pass
